@@ -164,6 +164,29 @@ def eliminar_usuario(id):
     except Exception as e:
         return jsonify({"error": f"Error al eliminar usuario: {str(e)}"}), 500
 
+@usuarios_bp.route('/<int:id>/estado', methods=['PATCH'])
+def cambiar_estado_usuario(id):
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # Obtener estado actual
+            cur.execute("SELECT activo FROM usuarios WHERE id = %s", (id,))
+            resultado = cur.fetchone()
+
+            if not resultado:
+                return jsonify({"error": "Usuario no encontrado."}), 404
+
+            estado_actual = resultado[0]
+            nuevo_estado = not estado_actual
+
+            cur.execute("UPDATE usuarios SET activo = %s WHERE id = %s", (nuevo_estado, id))
+            conn.commit()
+
+        return jsonify({"mensaje": f"Usuario {'activado' if nuevo_estado else 'desactivado'} correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al cambiar estado del usuario: {str(e)}"}), 500
+
     
     
 @usuarios_bp.route('/listar', methods=['GET'])
