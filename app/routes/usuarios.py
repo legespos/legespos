@@ -58,17 +58,17 @@ def listar_usuarios():
         conn = get_db_connection()
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT id, nombre, apellido, correo, rol_id, activo, fecha_creacion
-                FROM usuarios
-                WHERE activo = TRUE
-                ORDER BY fecha_creacion DESC, id DESC
+                SELECT u.id, u.nombre, u.apellido, u.correo, u.activo, u.fecha_creacion,
+                       r.nombre AS rol_nombre
+                FROM usuarios u
+                JOIN roles r ON u.rol_id = r.id
+                ORDER BY u.fecha_creacion DESC, u.id DESC
             """)
             resultados = cur.fetchall()
 
-        # Convertir resultados a lista de diccionarios
         usuarios = []
+        keys = ['id', 'nombre', 'apellido', 'correo', 'activo', 'fecha_creacion', 'rol_nombre']
         for fila in resultados:
-            keys = ['id', 'nombre', 'apellido', 'correo', 'rol_id', 'activo', 'fecha_creacion']
             usuarios.append(dict(zip(keys, fila)))
 
         return jsonify(usuarios), 200

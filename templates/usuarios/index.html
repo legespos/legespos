@@ -19,7 +19,8 @@
             <th>Nombre</th>
             <th>Apellido</th>
             <th>Correo</th>
-            <th>Rol ID</th>
+            <th>Rol</th>
+            <th>Estado</th>
             <th>Creado</th>
           </tr>
         </thead>
@@ -117,16 +118,19 @@
         .then((res) => res.json())
         .then((data) => {
           const tbody = document.querySelector("#tablaUsuarios tbody");
+          tbody.innerHTML = ""; // Limpiar por si ya hay datos
+
           data.forEach((u) => {
             const row = `
-          <tr>
-            <td>${u.nombre}</td>
-            <td>${u.apellido}</td>
-            <td>${u.correo}</td>
-            <td>${u.rol_id}</td>
-            <td>${new Date(u.fecha_creacion).toLocaleString()}</td>
-          </tr>
-        `;
+        <tr>
+          <td>${u.nombre}</td>
+          <td>${u.apellido}</td>
+          <td>${u.correo}</td>
+          <td>${u.rol_nombre}</td>
+          <td>${u.activo ? "Activo" : "Inactivo"}</td>
+          <td>${new Date(u.fecha_creacion).toLocaleString()}</td>
+        </tr>
+      `;
             tbody.innerHTML += row;
           });
         });
