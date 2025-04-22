@@ -10,7 +10,7 @@
   </head>
   <body class="bg-light">
     <div class="container mt-5">
-      <h2 class="mb-4">Usuarios activos</h2>
+      <h2 class="mb-4">Usuarios</h2>
 
       <!-- Tabla de usuarios -->
       <table class="table table-striped" id="tablaUsuarios">
@@ -22,19 +22,17 @@
             <th>Rol</th>
             <th>Estado</th>
             <th>Creado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
+
         <tbody>
           <!-- Aquí se insertarán las filas vía JS -->
         </tbody>
       </table>
 
       <!-- Botón para abrir el modal -->
-      <button
-        class="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#modalNuevoUsuario"
-      >
+      <button class="btn btn-primary" onclick="abrirModalNuevoUsuario()">
         + Nuevo usuario
       </button>
     </div>
@@ -73,7 +71,13 @@
               </div>
               <div class="mb-3">
                 <label for="correo" class="form-label">Correo</label>
-                <input type="email" class="form-control" id="correo" required />
+                <input
+                  type="email"
+                  class="form-control"
+                  id="correo"
+                  required
+                  readonly
+                />
               </div>
               <div class="mb-3">
                 <label for="contrasena" class="form-label">Contraseña</label>
@@ -102,6 +106,8 @@
                 Cancelar
               </button>
             </div>
+            <input type="hidden" id="modoForm" value="crear" />
+            <input type="hidden" id="usuarioId" />
           </form>
         </div>
       </div>
@@ -109,76 +115,198 @@
 
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      // Cargar usuarios al iniciar
-      fetch("/usuarios")
-        .then((res) => res.json())
-        .then((data) => {
-          const tbody = document.querySelector("#tablaUsuarios tbody");
-          tbody.innerHTML = ""; // Limpiar por si ya hay datos
+      function cargarUsuarios() {
+        fetch("/usuarios")
+          .then((res) => res.json())
+          .then((data) => {
+            const tbody = document.querySelector("#tablaUsuarios tbody");
+            tbody.innerHTML = "";
 
-          data.forEach((u) => {
-            const row = `
-        <tr>
-          <td>${u.nombre}</td>
-          <td>${u.apellido}</td>
-          <td>${u.correo}</td>
-          <td>${u.rol_nombre}</td>
-          <td>${u.activo ? "Activo" : "Inactivo"}</td>
-          <td>${new Date(u.fecha_creacion).toLocaleString()}</td>
-        </tr>
-      `;
-            tbody.innerHTML += row;
+            data.forEach((u) => {
+              const row = `
+            <tr>
+              <td>${u.nombre}</td>
+              <td>${u.apellido}</td>
+              <td>${u.correo}</td>
+              <td>${u.rol_nombre}</td>
+              <td>${u.activo ? "Activo" : "Inactivo"}</td>
+              <td>${new Date(u.fecha_creacion).toLocaleString()}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editarUsuario(${
+                  u.id
+                })">✏️</button>
+                <button class="btn btn-sm btn-outline-danger me-1" onclick="eliminarUsuario(${
+                  u.id
+                })">🗑️</button>
+                <button class="btn btn-sm btn-outline-secondary" disabled>🔁</button>
+              </td>
+            </tr>
+          `;
+              tbody.innerHTML += row;
+            });
           });
-        });
+      }
 
-      // Cargar roles al abrir el modal
-      document
-        .getElementById("modalNuevoUsuario")
-        .addEventListener("show.bs.modal", async () => {
-          const select = document.getElementById("rol_id");
-          select.innerHTML =
-            '<option value="" disabled selected>Seleccione un rol</option>'; // Reset
+      // Ejecutar al cargar la página
+      cargarUsuarios();
 
-          const res = await fetch("/usuarios/roles");
-          const roles = await res.json();
-
-          roles.forEach((rol) => {
-            const option = document.createElement("option");
-            option.value = rol.id;
-            option.textContent = rol.nombre;
-            select.appendChild(option);
-          });
-        });
-
-      // Envío del formulario
+      // Envío del formulario (crear o editar)
       document
         .getElementById("formNuevoUsuario")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
 
+          const modo = document.getElementById("modoForm").value;
+          const id = document.getElementById("usuarioId").value;
+
           const usuario = {
             nombre: document.getElementById("nombre").value,
             apellido: document.getElementById("apellido").value,
-            correo: document.getElementById("correo").value,
             contrasena: document.getElementById("contrasena").value,
             rol_id: parseInt(document.getElementById("rol_id").value),
           };
 
-          const res = await fetch("/usuarios", {
-            method: "POST",
+          let url = "/usuarios";
+          let metodo = "POST";
+
+          if (modo === "editar") {
+            url = `/usuarios/${id}`;
+            metodo = "PUT";
+            delete usuario.correo;
+            if (!usuario.contrasena) delete usuario.contrasena;
+          } else {
+            usuario.correo = document.getElementById("correo").value;
+          }
+
+          const res = await fetch(url, {
+            method: metodo,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(usuario),
           });
 
-          if (res.status === 201) {
-            alert("Usuario registrado exitosamente");
-            location.reload();
+          const resultado = await res.json();
+
+          if (res.ok) {
+            alert(modo === "crear" ? "Usuario creado" : "Usuario actualizado");
+            bootstrap.Modal.getInstance(
+              document.getElementById("modalNuevoUsuario")
+            ).hide();
+            document.getElementById("formNuevoUsuario").reset();
+            document.getElementById("modoForm").value = "crear";
+            document.getElementById("correo").removeAttribute("readonly");
+            cargarUsuarios();
           } else {
-            const error = await res.json();
-            alert("Error: " + error.error);
+            alert("Error: " + resultado.error);
           }
         });
+
+      // Cargar datos para editar
+      function editarUsuario(id) {
+        fetch("/usuarios")
+          .then((res) => res.json())
+          .then((usuarios) => {
+            const u = usuarios.find((user) => user.id === id);
+            if (!u) return alert("Usuario no encontrado");
+
+            document.getElementById("nombre").value = u.nombre;
+            document.getElementById("apellido").value = u.apellido;
+            document.getElementById("correo").value = u.correo;
+            document.getElementById("contrasena").value = "";
+            document.getElementById("modoForm").value = "editar";
+            document.getElementById("usuarioId").value = u.id;
+            document.getElementById("correo").setAttribute("readonly", true);
+
+            // Esperar que los roles se carguen para seleccionar
+            setTimeout(() => {
+              const select = document.getElementById("rol_id");
+              for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].textContent === u.rol_nombre) {
+                  select.selectedIndex = i;
+                  break;
+                }
+              }
+            }, 300);
+
+            const modal = new bootstrap.Modal(
+              document.getElementById("modalNuevoUsuario")
+            );
+            modal.show();
+          });
+      }
+
+      function eliminarUsuario(id) {
+        if (
+          !confirm(
+            "¿Estás seguro de que querés eliminar este usuario? Esta acción no se puede deshacer."
+          )
+        ) {
+          return;
+        }
+
+        fetch(`/usuarios/${id}`, {
+          method: "DELETE",
+        })
+          .then((res) => res.json())
+          .then((respuesta) => {
+            if (respuesta.mensaje) {
+              alert(respuesta.mensaje);
+              cargarUsuarios();
+            } else {
+              alert("Error: " + respuesta.error);
+            }
+          })
+          .catch((err) => {
+            alert("Ocurrió un error al eliminar el usuario.");
+            console.error(err);
+          });
+      }
+
+      function abrirModalNuevoUsuario() {
+        resetearModalUsuario();
+        const modal = new bootstrap.Modal(
+          document.getElementById("modalNuevoUsuario")
+        );
+        modal.show();
+      }
+
+      let rolesCargados = [];
+
+      function resetearModalUsuario() {
+        const form = document.getElementById("formNuevoUsuario");
+        form.reset();
+
+        document.getElementById("modoForm").value = "crear";
+        document.getElementById("usuarioId").value = "";
+        document.getElementById("correo").removeAttribute("readonly");
+
+        const select = document.getElementById("rol_id");
+        select.innerHTML =
+          '<option value="" disabled selected>Seleccione un rol</option>';
+
+        if (rolesCargados.length > 0) {
+          // usar los ya cargados
+          rolesCargados.forEach((rol) => {
+            const option = document.createElement("option");
+            option.value = rol.id;
+            option.textContent = rol.nombre;
+            select.appendChild(option);
+          });
+        } else {
+          fetch("/usuarios/roles")
+            .then((res) => res.json())
+            .then((roles) => {
+              rolesCargados = roles;
+              roles.forEach((rol) => {
+                const option = document.createElement("option");
+                option.value = rol.id;
+                option.textContent = rol.nombre;
+                select.appendChild(option);
+              });
+            });
+        }
+      }
     </script>
   </body>
 </html>

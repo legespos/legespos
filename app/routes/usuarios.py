@@ -93,6 +93,78 @@ def obtener_roles():
     except Exception as e:
         return jsonify({"error": f"Error al obtener los roles: {str(e)}"}), 500
     
+@usuarios_bp.route('/<int:id>', methods=['PUT'])
+def actualizar_usuario(id):
+    data = request.get_json()
+    campos_actualizables = ['nombre', 'apellido', 'correo', 'contrasena', 'rol_id']
+    valores = {}
+
+    for campo in campos_actualizables:
+        if campo in data and data[campo]:
+            valores[campo] = data[campo]
+
+    if not valores:
+        return jsonify({"error": "No se enviaron campos para actualizar."}), 400
+
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # Validar si el usuario existe
+            cur.execute("SELECT id FROM usuarios WHERE id = %s", (id,))
+            if not cur.fetchone():
+                return jsonify({"error": "Usuario no encontrado."}), 404
+
+            # Validar correo duplicado (si se va a actualizar)
+            if 'correo' in valores:
+                cur.execute("SELECT id FROM usuarios WHERE correo = %s AND id <> %s", (valores['correo'], id))
+                if cur.fetchone():
+                    return jsonify({"error": "Ya existe otro usuario con ese correo."}), 409
+
+            # Preparar campos para la consulta UPDATE
+            sets = []
+            parametros = []
+
+            for campo, valor in valores.items():
+                if campo == 'contrasena':
+                    valor = generate_password_hash(valor)
+                sets.append(f"{campo} = %s")
+                parametros.append(valor)
+
+            parametros.append(id)
+
+            cur.execute(f"""
+                UPDATE usuarios
+                SET {', '.join(sets)}
+                WHERE id = %s
+            """, parametros)
+
+            conn.commit()
+
+        return jsonify({"mensaje": "Usuario actualizado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
+@usuarios_bp.route('/<int:id>', methods=['DELETE'])
+def eliminar_usuario(id):
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # Verificar si el usuario existe
+            cur.execute("SELECT id FROM usuarios WHERE id = %s", (id,))
+            if not cur.fetchone():
+                return jsonify({"error": "Usuario no encontrado."}), 404
+
+            # Eliminar usuario
+            cur.execute("DELETE FROM usuarios WHERE id = %s", (id,))
+            conn.commit()
+
+        return jsonify({"mensaje": "Usuario eliminado correctamente."}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al eliminar usuario: {str(e)}"}), 500
+
+    
     
 @usuarios_bp.route('/listar', methods=['GET'])
 def vista_lista_usuarios():
