@@ -13,8 +13,8 @@ def create_app():
 
     init_db()
     
-    #app.secret_key = os.getenv('SECRET_KEY')
-    app.secret_key = 'supersecretkey'
+    app.secret_key = os.getenv('SECRET_KEY')
+    #app.secret_key = 'supersecretkey'
 
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(auth_bp)
