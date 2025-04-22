@@ -2,6 +2,7 @@ from flask import Flask
 from .db import init_db
 from app.routes.usuarios import usuarios_bp
 from app.routes.auth import auth_bp
+from app.routes.dashboard import dashboard_bp
 from dotenv import load_dotenv
 import os
 
@@ -17,5 +18,6 @@ def create_app():
 
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
 
     return app
