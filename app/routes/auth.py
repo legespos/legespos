@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, session
 from werkzeug.security import check_password_hash
 from app.db import get_db_connection
 
@@ -11,7 +11,7 @@ def login():
         contrasena = request.form.get('contrasena')
 
         if not correo or not contrasena:
-            return render_template('auth/login.html', error='Todos los campos son obligatorios.')
+            return render_template('login.html', error='Todos los campos son obligatorios.')
 
         try:
             conn = get_db_connection()
@@ -20,12 +20,17 @@ def login():
                 user = cur.fetchone()
 
                 if user and check_password_hash(user[2], contrasena):
-                    # Aquí podrías usar sesión
+                    session['usuario_id'] = user[0]
+                    session['usuario_nombre'] = user[1]
                     return redirect(url_for('usuarios.vista_lista_usuarios'))
-                else:
-                    return render_template('auth/login.html', error='Credenciales incorrectas.')
-
+                
         except Exception as e:
             return render_template('auth/login.html', error=f'Error del servidor: {str(e)}')
 
     return render_template('auth/login.html')
+
+@auth_bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('auth.login'))
+

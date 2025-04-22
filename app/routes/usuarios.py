@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from app.db import get_db_connection
 from werkzeug.security import generate_password_hash
 from flask import render_template
@@ -191,7 +191,8 @@ def cambiar_estado_usuario(id):
     
 @usuarios_bp.route('/listar', methods=['GET'])
 def vista_lista_usuarios():
+    print("Sesión actual:", dict(session))
+    if 'usuario_id' not in session:
+        return redirect(url_for('auth.login'))
+
     return render_template('usuarios/index.html')
-
-
-
