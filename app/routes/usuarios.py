@@ -76,9 +76,27 @@ def listar_usuarios():
     except Exception as e:
         return jsonify({"error": f"Error al obtener los usuarios: {str(e)}"}), 500
     
+@usuarios_bp.route('/roles', methods=['GET'])
+def obtener_roles():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, nombre FROM roles ORDER BY nombre ASC")
+            resultados = cur.fetchall()
+
+        roles = []
+        for fila in resultados:
+            roles.append({"id": fila[0], "nombre": fila[1]})
+
+        return jsonify(roles), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener los roles: {str(e)}"}), 500
+    
     
 @usuarios_bp.route('/listar', methods=['GET'])
 def vista_lista_usuarios():
     return render_template('usuarios/index.html')
+
 
 

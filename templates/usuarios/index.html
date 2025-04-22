@@ -85,14 +85,11 @@
                 />
               </div>
               <div class="mb-3">
-                <label for="rol_id" class="form-label">Rol ID</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  id="rol_id"
-                  required
-                  min="1"
-                />
+                <label for="rol_id" class="form-label">Rol</label>
+                <select class="form-select" id="rol_id" required>
+                  <option value="" disabled selected>Seleccione un rol</option>
+                  <!-- Opciones se cargan dinámicamente -->
+                </select>
               </div>
             </div>
             <div class="modal-footer">
@@ -132,6 +129,25 @@
         </tr>
       `;
             tbody.innerHTML += row;
+          });
+        });
+
+      // Cargar roles al abrir el modal
+      document
+        .getElementById("modalNuevoUsuario")
+        .addEventListener("show.bs.modal", async () => {
+          const select = document.getElementById("rol_id");
+          select.innerHTML =
+            '<option value="" disabled selected>Seleccione un rol</option>'; // Reset
+
+          const res = await fetch("/usuarios/roles");
+          const roles = await res.json();
+
+          roles.forEach((rol) => {
+            const option = document.createElement("option");
+            option.value = rol.id;
+            option.textContent = rol.nombre;
+            select.appendChild(option);
           });
         });
 
